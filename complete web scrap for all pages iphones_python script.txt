@@ -1,0 +1,95 @@
+############################PAGE 1 to 22 OF ANDRIOD PHONES automated ###########################
+
+
+import pandas as pd
+import requests
+import bs4
+import re
+from collections import Counter
+
+baseurl = "https://www.jumia.com.ng"
+headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36'}
+
+linkholder = []
+t = {}
+data = []
+c = 0
+
+for x in range(1,3):  # for x in range(1,23): start from 1 end in 23 : there are 22 pages or for x in range(1,3):  2 pages only etc
+    #open page2,3,4 copy the link from adress bar 
+    #https: // www.jumia.com.ng / catalog /?q = andriod + phones & page = 2  # catalog-listing
+    # https://www.jumia.com.ng/catalog/?q=andriod+phones&page=3#catalog-listing
+    # https://www.jumia.com.ng/catalog/?q=andriod+phones&page=X#catalog-listing
+    # home page or page 1  for serach andriod phone is .....
+    # https://www.jumia.com.ng/catalog/?q=andriod+phones     OR
+    # https://www.jumia.com.ng/catalog/?q=andriod+phones&page=1#catalog-listing OR
+    # https://www.jumia.com.ng/catalog/?q=andriod+phones&page=0#catalog-listing
+
+    # creating a dynamic url ...................
+    # https://www.jumia.com.ng/catalog/?q=andriod+phones&page={}#catalog-listing'.format(x)
+	#https://www.jumia.com.ng/catalog/?q=iphones&page=2#catalog-listing
+	#https://www.jumia.com.ng/apple/?q=iphones&page=2#catalog-listing
+
+
+    url = 'https://www.jumia.com.ng/apple/?q=iphones&page={}#catalog-listing'.format(x)
+
+    requestmade = requests.get(url)
+    requestmade.raise_for_status()
+    convertedTOstring = requestmade.text
+    soup = bs4.BeautifulSoup(convertedTOstring, 'html.parser')
+
+    itemslisted = soup.find_all('a', class_='core')
+
+    for i in itemslisted:
+        # if(i.text !="" and i.text !="Sponsored"):
+        linkobtained = i.get('href')
+        # print(linkobtained)
+        if linkobtained == "" or linkobtained is None:
+            continue
+        # join the URL if it's relative (not absolute link)
+        completeUrl = baseurl + linkobtained
+        # print(completeUrl)
+        linkholder.append(completeUrl)
+################################## loops ends here: below bring out all link################
+for x in linkholder:
+    print(x)  # 848 products/links less as sponsored are removed
+
+counter = 0
+for nos in linkholder:
+    # Incrementing counter variable to get each item in the list
+    counter = counter + 1
+print(counter, 'iphones found!')  # only 40 links were produced form 48 elements displayed
+# the others 8 where sponsored items
+
+for k in linkholder:
+    requestedk = requests.get(k, headers=headers)
+    convertedTOstringk = requestedk.text
+    soupk = bs4.BeautifulSoup(convertedTOstringk, 'html.parser')
+    # this open each product one after the other using thelink k in link holder
+    # open first item link right click the name > inspect <h1 class="-fs20 -pts -pbxs">  it should be same for all items
+    try:
+        name = soupk.find('h1', class_='-fs20').text.replace('\n', "")  # text bring out the text
+    except:
+        name = None
+    try:  # open first item link right click the price <span dir="ltr" class="-b -ltr -tal -fs24">
+        price = soupk.find('span', class_='-b').text.replace('\n', "")
+    except:
+        price = None
+    try:  # open first item link right click the rating <div class="stars _s _al">0 out of 5</div>
+        rating = soupk.find('div', class_='stars').text.replace('\n', "")
+    except:
+        rating = None
+
+    phone = {"name": name, "price": price, "rating": rating}
+    data.append(phone)
+    c = c + 1
+    print('completed', c)
+
+df = pd.DataFrame.from_dict(data)
+print(df)
+
+wrote = df.to_excel('result.xlsx')  # it will automaticaly create the excel sheet
+
+# for d in data:
+# print(d)
+
